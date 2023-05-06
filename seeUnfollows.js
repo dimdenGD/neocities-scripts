@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         See unfollows [neocities.org]
 // @namespace    http://tampermonkey.net/
-// @version      1.8
-// @description  See people who unfollowed you
+// @version      1.8.1
+// @description  See people who unfollowed you. Also shows when people change their site name.
 // @author       https://neocities.org/site/dimden
 // @match        https://neocities.org/
 // @match        https://neocities.org/?page=*
@@ -95,19 +95,30 @@
     }
     async function getCurrentFollowers() {
         const followerPage = await fetch(`https://neocities.org/site/${mySite}/followers`).then(res => res.text());
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(followerPage, "text/html");
-        return Array.from(doc.querySelectorAll('.username > a')).map(u => u.innerText.replace(/\n/g, '').trim().filter(u => !u.includes('/')));
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(followerPage, "text/html");
+            return Array.from(doc.querySelectorAll('.username > a')).map(u => u.innerText.replace(/\n/g, '').trim()).filter(u => !u.includes('/'));
+        } catch(e) {
+            console.error('error getting followers', e);
+            console.log(followerPage);
+        }
+        return [];
     }
 
     let currentFollowers = await getCurrentFollowers();
+    if(currentFollowers.length === 0) return;
 
     let previousFollowers = localStorage.followings ? JSON.parse(localStorage.followings) : [];
     let newUnfollows = previousFollowers.filter(e => !currentFollowers.includes(e));
     let unfollows = localStorage.unfollows ? JSON.parse(localStorage.unfollows) : [];
+    let renamed;
+    if(newUnfollows.length === 1 && currentFollowers.length === previousFollowers.length) {
+        renamed = currentFollowers.find(f => !previousFollowers.includes(f));
+    }
 
     for (let i in newUnfollows) {
-        unfollows.push([newUnfollows[i], Date.now(), !(await fetch(`https://neocities.org/site/${newUnfollows[i]}`, {redirect: 'manual'})).ok]);
+        unfollows.push([newUnfollows[i], Date.now(), !(await fetch(`https://neocities.org/site/${newUnfollows[i]}`, {redirect: 'manual'})).ok, renamed]);
     }
     unfollows = unfollows.filter(u => !currentFollowers.includes(u[0]));
 
@@ -116,7 +127,7 @@
 
     unfollows = unfollows.reverse();
     for (let i in unfollows) {
-        let [nick, date, disabledProfile] = unfollows[i];
+        let [nick, date, disabledProfile, renamed] = unfollows[i];
         let el = findBetween(date);
         if (el) {
             let unfollowElement = document.createElement('div');
@@ -125,7 +136,7 @@
         <div class="title">
             <div class="icon"><a href="/site/${nick}" title="${nick}" class="avatar" style="background-image: url(/site_screenshots/21/90/${nick}/index.html.50x50.jpg);"></a></div>
             <div class="text">
-                <a href="/site/${nick}" class="user">${nick}</a> ${disabledProfile ? 'disabled profile.' : 'unfollowed you!'}
+                <a href="/site/${nick}" class="user">${nick}</a> ${renamed ? `renamed to <a href="/site/${renamed}" class="user">${renamed}</a>` : disabledProfile ? 'disabled profile.' : 'unfollowed you!'}
             </div>
             <a class="date" style="color:#aaa" href="https://greasyfork.org/en/scripts/450226-see-unfollows-neocities-org" target="_blank">detected ${relativeTime(new Date(date))}</a>
         </div>`;
