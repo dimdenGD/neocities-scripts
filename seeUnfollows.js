@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         See unfollows [neocities.org]
 // @namespace    http://tampermonkey.net/
-// @version      1.8.1
+// @version      1.8.2
 // @description  See people who unfollowed you. Also shows when people change their site name.
 // @author       https://neocities.org/site/dimden
 // @match        https://neocities.org/
@@ -113,7 +113,8 @@
     let newUnfollows = previousFollowers.filter(e => !currentFollowers.includes(e));
     let unfollows = localStorage.unfollows ? JSON.parse(localStorage.unfollows) : [];
     let renamed;
-    if(newUnfollows.length === 1 && currentFollowers.length === previousFollowers.length) {
+    let notifCount = document.getElementsByClassName("notification-value")[0];
+    if(newUnfollows.length === 1 && currentFollowers.length === previousFollowers.length && !notifCount) {
         renamed = currentFollowers.find(f => !previousFollowers.includes(f));
     }
 
