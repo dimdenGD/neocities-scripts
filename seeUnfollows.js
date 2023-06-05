@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         See unfollows [neocities.org]
 // @namespace    http://tampermonkey.net/
-// @version      1.8.2
+// @version      1.8.3
 // @description  See people who unfollowed you. Also shows when people change their site name.
 // @author       https://neocities.org/site/dimden
 // @match        https://neocities.org/
@@ -65,7 +65,7 @@
     }
 
     function findBetween(date) {
-        let news = Array.from(document.getElementsByClassName('news-item')).map(e => ({ el: e, time: getDateFromTimeAgo(e.getElementsByClassName('date')[0].innerText) }));
+        let news = Array.from(document.getElementsByClassName('news-item')).map(e => ({ el: e, time: getDateFromTimeAgo(e.getElementsByClassName('date')?.[0]?.innerText ?? '1 second ago') }));
         for (let i = 0; i < news.length; i++) {
             if (news[i].time < date && Math.abs(news[i].time-date) < 8.82e+7) {
                 return news[i].el;
